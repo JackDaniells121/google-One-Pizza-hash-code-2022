@@ -1,0 +1,81 @@
+#!/usr/bin/php
+<?php
+
+include 'PizzeriaClient.php';
+include 'PizzeriaClientCollection.php';
+
+use GoogleHashCode2022Solution\PizzeriaClient;
+use GoogleHashCode2022Solution\PizzeriaClientCollection;
+
+//$inputFile = "input_data/a_an_example.in.txt";
+//$inputFile = "input_data/b_basic.in.txt";
+$inputFile = "input_data/c_coarse.in.txt";
+//$inputFile = "input_data/d_difficult.in.txt";
+//$inputFile = "input_data/e_elaborate.in.txt";
+
+$lines = [];
+
+$f = fopen($inputFile, 'r');
+
+while (!feof($f)) {
+    $lines[] = fgets($f);
+}
+fclose($f);
+
+$clients = [];
+
+for ($i = 2; $i < count($lines); $i += 2) {
+
+    if (!is_null($lines[$i-1]) && !is_null($lines[$i]))
+    {
+        $like = explode(' ', trim($lines[$i-1]));
+        $dislike = explode(' ', trim($lines[$i]));
+        array_shift($like);
+        array_shift($dislike);
+
+        $clients[] = new PizzeriaClient($like, $dislike);
+    }
+
+}
+
+$collection = new PizzeriaClientCollection($clients);
+
+// ---- this is not used any more --------------------------------
+$results = [];
+$allDisLikeCount = [];
+foreach ($clients as $i => $client) {
+    $results['Client'.$i] = [
+            'like' => implode(',', $client->like) . ' | '. $client->likeScore,
+            'dis' => implode(',', $client->dislike) . ' | '. $client->dislikeScore,
+    ];
+    $allDisLikeCount[] = count($client->dislike);
+}
+
+//$countOfDislikes = array_count_values($allDisLikeCount);
+//ksort($countOfDislikes);
+//print_r($countOfDislikes);
+// ----------------------------------------------------------------
+
+
+//--------------------- Generate Results--------------------------------------------/
+
+//first 2 files simple solution;
+//$resultArray = array_diff(array_unique($collection->allLike), array_unique($collection->allDislike));
+
+// 3rd file score 30%
+//$resultArray = array_unique($collection->allLike);
+
+// new algorithm score 66.66%, 100%, 40%, 33.699%, 21.46%
+$collection->calculateMostLikeDislike();
+$resultArray = array_unique($collection->mostLikesDislikes);
+
+$resultText =  count($resultArray) . ' ' . implode(' ', $resultArray);
+echo $resultText.PHP_EOL;
+
+$resultFileName1 = str_replace('input_data/', 'output_data/', $inputFile);
+$resultFileName2 = str_replace('.in.', '.out.', $resultFileName1);
+
+file_put_contents($resultFileName2, $resultText, LOCK_EX);
+
+echo "Score " . ($collection->calculateScore($resultArray) / count($collection->clients)) * 100 . "%";
+echo PHP_EOL;
